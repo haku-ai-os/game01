@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>記憶天才テスト</title>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --bg:  #06060f;
+      --text: #e8eaff;
+      --dim:  rgba(210,215,255,0.38);
+      --c0: #00F5E4; --d0: #001f1d;
+      --c1: #E020C0; --d1: #200018;
+      --c2: #F5D800; --d2: #211d00;
+      --c3: #00E87A; --d3: #001f10;
+    }
+
+    body {
+      min-height: 100dvh;
+      background: var(--bg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: 'Helvetica Neue', Arial, 'Noto Sans JP', sans-serif;
+      overflow: hidden;
+      user-select: none; -webkit-user-select: none;
+    }
+
+    #stars { position:fixed; inset:0; pointer-events:none; z-index:0; }
+    .star {
+      position:absolute; background:#fff; border-radius:50%;
+      animation: twk var(--t,3s) ease-in-out infinite var(--d,0s);
+    }
+    @keyframes twk { 0%,100%{opacity:.06} 50%{opacity:.55} }
+
+    body::before {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:1;
+      background: repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px);
+    }
+
+    /* ── MUSIC TOGGLE ── */
+    #music-btn {
+      position:fixed; top:16px; right:16px; z-index:100;
+      width:36px; height:36px; border-radius:50%;
+      background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.15);
+      cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;
+      transition:background .2s; color:#fff;
+    }
+    #music-btn:hover { background:rgba(255,255,255,.14); }
+
+    /* ── SCREENS ── */
+    .screen {
+      position:absolute; inset:0; z-index:2;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      padding:24px 24px 32px;
+      transition: opacity .4s, transform .4s;
+    }
+    .screen.hidden { opacity:0; pointer-events:none; transform:scale(.97); }
+
+    /* ════ TITLE ════ */
+    #title-screen { gap:0; }
+    .title-ornament { font-size:11px; letter-spacing:6px; color:var(--dim); text-transform:uppercase; margin-bottom:22px; }
+    .title-ornament span { margin:0 8px; opacity:.5; }
+    #title-brain { font-size:clamp(54px,14vw,72px); margin-bottom:16px; animation:bob 4s ease-in-out infinite; }
+    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    #title-name {
+      font-size:clamp(28px,7.5vw,42px); font-weight:100;
+      letter-spacing:clamp(6px,2vw,12px); text-transform:uppercase; text-align:center; line-height:1.2;
+      background:linear-gradient(135deg,#c8d0ff 0%,#ffffff 40%,#f0c080 70%,#c8d0ff 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:6px;
+    }
+    #title-jp { font-size:13px; letter-spacing:4px; color:var(--dim); margin-bottom:28px; }
+    .divider { width:60px; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent); margin:20px auto; }
+    .rule-text { font-size:12px; letter-spacing:1.5px; color:var(--dim); text-align:center; line-height:2.2; margin-bottom:28px; }
+    .btn-main {
+      padding:16px 56px; font-size:13px; font-weight:400;
+      letter-spacing:5px; text-transform:uppercase; color:#fff;
+      background:transparent; border:1px solid rgba(255,255,255,.28);
+      border-radius:2px; cursor:pointer; position:relative; overflow:hidden;
+      transition:border-color .25s;
+    }
+    .btn-main::before {
+      content:''; position:absolute; inset:0;
+      background:linear-gradient(135deg,rgba(0,245,228,.08),rgba(224,32,192,.08));
+      opacity:0; transition:opacity .25s;
+    }
+    .btn-main:hover { border-color:rgba(255,255,255,.55); }
+    .btn-main:hover::before { opacity:1; }
+    .btn-main:active { transform:scale(.97); }
+    #best-badge { margin-top:14px; font-size:11px; letter-spacing:2.5px; color:var(--dim); text-transform:uppercase; }
+
+    /* ════ GAME ════ */
+    #game-screen { gap:0; justify-content:space-between; }
+    #top-bar {
+      width:100%; max-width:480px;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 4px; margin-bottom:14px; flex-shrink:0;
+    }
+    .stat { text-align:center; min-width:72px; }
+    .stat-label { font-size:9px; letter-spacing:3px; color:var(--dim); text-transform:uppercase; margin-bottom:4px; }
+    .stat-val { font-size:26px; font-weight:200; color:var(--text); letter-spacing:2px; }
+    #status-wrap {
+      flex:1; margin:0 16px; text-align:center;
+      border-left:1px solid rgba(255,255,255,.08); border-right:1px solid rgba(255,255,255,.08);
+      padding:6px 12px;
+    }
+    #status { font-size:11px; letter-spacing:4px; text-transform:uppercase; color:var(--text); transition:color .2s; }
+
+    #timer-track {
+      width:100%; max-width:480px; height:1px; flex-shrink:0;
+      background:rgba(255,255,255,.08); margin-bottom:14px;
+      opacity:0; transition:opacity .3s;
+    }
+    #timer-bar { height:100%; width:100%; background:linear-gradient(90deg,var(--c0),var(--c1)); }
+    #timer-track.on { opacity:1; }
+
+    /* GRID */
+    #grid-wrap {
+      width:min(480px, calc(100vw - 48px));
+      flex-shrink:0; position:relative; z-index:10;
+    }
+    #grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; aspect-ratio:1; }
+
+    .tile {
+      border-radius:14px; cursor:pointer;
+      position:relative; overflow:hidden; z-index:10;
+      transform:translateZ(0); -webkit-transform:translateZ(0);
+      transition:transform .12s;
+      -webkit-tap-highlight-color:transparent; touch-action:none;
+    }
+    .tile.lit { transform:scale(1.04) translateZ(0); }
+    .tile::before {
+      content:''; position:absolute; inset:0;
+      background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,transparent 60%);
+      border-radius:inherit; pointer-events:none; z-index:1;
+    }
+    .tile[data-id="0"] { background:var(--d0); box-shadow:inset 0 0 0 1px var(--c0); }
+    .tile[data-id="0"].lit { background:radial-gradient(ellipse at 40% 35%,var(--c0),#006655); box-shadow:0 0 50px var(--c0),0 0 90px rgba(0,245,228,.3); }
+    .tile[data-id="1"] { background:var(--d1); box-shadow:inset 0 0 0 1px var(--c1); }
+    .tile[data-id="1"].lit { background:radial-gradient(ellipse at 40% 35%,var(--c1),#8b0066); box-shadow:0 0 50px var(--c1),0 0 90px rgba(224,32,192,.3); }
+    .tile[data-id="2"] { background:var(--d2); box-shadow:inset 0 0 0 1px var(--c2); }
+    .tile[data-id="2"].lit { background:radial-gradient(ellipse at 40% 35%,var(--c2),#807000); box-shadow:0 0 50px var(--c2),0 0 90px rgba(245,216,0,.3); }
+    .tile[data-id="3"] { background:var(--d3); box-shadow:inset 0 0 0 1px var(--c3); }
+    .tile[data-id="3"].lit { background:radial-gradient(ellipse at 40% 35%,var(--c3),#006638); box-shadow:0 0 50px var(--c3),0 0 90px rgba(0,232,122,.3); }
+    .tile-lbl {
+      position:absolute; bottom:12px; right:14px;
+      font-size:10px; letter-spacing:2px; text-transform:uppercase;
+      color:rgba(255,255,255,.22); pointer-events:none; z-index:2;
+      transition:color .15s;
+    }
+    .tile.lit .tile-lbl { color:rgba(0,0,0,.32); }
+
+    #dots { display:flex; gap:6px; justify-content:center; margin-top:14px; min-height:10px; flex-shrink:0; }
+    .dot { width:8px; height:1px; border-radius:0; background:rgba(255,255,255,.15); transition:background .2s,transform .2s; }
+    .dot.done { background:rgba(255,255,255,.55); }
+    .dot.ok   { background:var(--c3); transform:scaleY(2); }
+    .dot.miss { background:#FF3040; transform:scaleY(2); }
+
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      15%{transform:translateX(-10px)} 30%{transform:translateX(10px)}
+      45%{transform:translateX(-6px)}  60%{transform:translateX(6px)}
+      75%{transform:translateX(-3px)}  90%{transform:translateX(3px)}
+    }
+    #grid-wrap.shake { animation:shake .42s ease; }
+
+    /* ════ RESULT ════ */
+    #result-screen { gap:0; }
+    #res-emoji { font-size:clamp(64px,16vw,80px); margin-bottom:16px; animation:pop .5s cubic-bezier(.175,.885,.32,1.275); }
+    @keyframes pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+    #res-rank { font-size:clamp(22px,6vw,32px); font-weight:100; letter-spacing:clamp(4px,1.5vw,8px); text-transform:uppercase; text-align:center; margin-bottom:8px; }
+    #res-score { font-size:13px; color:var(--dim); text-align:center; letter-spacing:1.5px; line-height:2; margin-bottom:24px; }
+    #share-card {
+      background:transparent; border:1px solid rgba(255,255,255,.15); border-radius:2px;
+      padding:16px 22px; font-size:12px; color:var(--dim);
+      text-align:center; max-width:320px; line-height:1.9;
+      cursor:pointer; transition:border-color .2s,background .2s; letter-spacing:.5px; margin-bottom:24px;
+    }
+    #share-card:hover { border-color:rgba(255,255,255,.35); background:rgba(255,255,255,.04); }
+    #share-label { font-size:9px; letter-spacing:3px; color:rgba(255,255,255,.3); text-transform:uppercase; margin-bottom:8px; }
+
+    #toast {
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+      background:rgba(0,232,122,.92); color:#000;
+      padding:10px 28px; border-radius:2px;
+      font-size:11px; letter-spacing:3px; text-transform:uppercase; font-weight:500;
+      opacity:0; transition:opacity .3s; pointer-events:none; z-index:999;
+    }
+    #toast.show { opacity:1; }
+  </style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<!-- MUSIC TOGGLE -->
+<button id="music-btn" onclick="toggleMusic()" title="BGM ON/OFF">♪</button>
+
+<!-- ════ TITLE ════ -->
+<div class="screen" id="title-screen">
+  <div class="title-ornament">◈<span>Memory</span>◈</div>
+  <div id="title-brain">🧠</div>
+  <div id="title-name">記憶天才テスト</div>
+  <div id="title-jp">— Memory Genius Test —</div>
+  <div class="divider"></div>
+  <div class="rule-text">
+    光った色を <strong style="color:#e8eaff;font-weight:500">同じ順番</strong> にタップ<br>
+    レベルが上がるほど 難しくなる
+  </div>
+  <button class="btn-main" onclick="startGame()">Start</button>
+  <div id="best-badge"></div>
+</div>
+
+<!-- ════ GAME ════ -->
+<div class="screen hidden" id="game-screen">
+  <div id="top-bar">
+    <div class="stat">
+      <div class="stat-label">Level</div>
+      <div class="stat-val" id="lv-val">1</div>
+    </div>
+    <div id="status-wrap">
+      <div id="status">Ready</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Best</div>
+      <div class="stat-val" id="best-val">—</div>
+    </div>
+  </div>
+
+  <div id="timer-track"><div id="timer-bar"></div></div>
+
+  <div id="grid-wrap">
+    <div id="grid">
+      <div class="tile" data-id="0"><span class="tile-lbl">Cyan</span></div>
+      <div class="tile" data-id="1"><span class="tile-lbl">Violet</span></div>
+      <div class="tile" data-id="2"><span class="tile-lbl">Gold</span></div>
+      <div class="tile" data-id="3"><span class="tile-lbl">Jade</span></div>
+    </div>
+  </div>
+
+  <div id="dots"></div>
+</div>
+
+<!-- ════ RESULT ════ -->
+<div class="screen hidden" id="result-screen">
+  <div id="res-emoji"></div>
+  <div id="res-rank"></div>
+  <div id="res-score"></div>
+  <div class="divider"></div>
+  <div id="share-card" onclick="copyShare()">
+    <div id="share-label">Tap to Copy · シェア用テキスト</div>
+    <span id="share-text"></span>
+  </div>
+  <button class="btn-main" onclick="startGame()">Retry</button>
+</div>
+
+<div id="toast">Copied</div>
+
+<script>
+/* ══════════════════════════════════════
+   STARS
+══════════════════════════════════════ */
+(()=>{
+  const w=document.getElementById('stars');
+  for(let i=0;i<70;i++){
+    const s=document.createElement('div'); s.className='star';
+    const sz=.6+Math.random()*2;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--t:${2.5+Math.random()*4}s;--d:-${Math.random()*5}s`;
+    w.appendChild(s);
+  }
+})();
+
+/* ══════════════════════════════════════
+   AUDIO CONTEXT
+══════════════════════════════════════ */
+let _ac = null;
+function getAC(){
+  if(!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)();
+  return _ac;
+}
+
+/* ══════════════════════════════════════
+   SFX
+══════════════════════════════════════ */
+const FREQS = [392, 523, 659, 784];
+
+function sfxTone(freq, dur=.24, type='sine', vol=.28){
+  try{
+    const a=getAC(), o=a.createOscillator(), g=a.createGain();
+    o.connect(g); g.connect(a.destination);
+    o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(vol, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, a.currentTime+dur);
+    o.start(); o.stop(a.currentTime+dur);
+  }catch(e){}
+}
+
+function sfxBuzzer(){
+  try{
+    const a=getAC(), o=a.createOscillator(), g=a.createGain();
+    o.connect(g); g.connect(a.destination);
+    o.type='sawtooth';
+    o.frequency.setValueAtTime(150, a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(45, a.currentTime+.5);
+    g.gain.setValueAtTime(.32, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, a.currentTime+.5);
+    o.start(); o.stop(a.currentTime+.5);
+  }catch(e){}
+}
+
+function sfxFanfare(){
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>sfxTone(f,.2,'sine',.26),i*70));
+}
+
+/* ══════════════════════════════════════
+   BGM ENGINE
+   — procedural electronic music, no external files —
+══════════════════════════════════════ */
+const BGM = (() => {
+  let ac, masterGain, noiseBuf;
+  let playing = false, musicOn = true;
+  let step = 0, nextTime = 0, tid = null;
+
+  const BPM   = 122;
+  const STEP  = 60 / BPM / 4; // 16th note seconds
+
+  // 2-bar arpeggio (Am pentatonic groove)
+  const ARP = [
+    220.0, 261.6, 329.6, 392.0,   // bar1 beat1: Am up
+    440.0, 392.0, 329.6, 261.6,   // bar1 beat2: Am down
+    246.9, 329.6, 392.0, 440.0,   // bar1 beat3: Em up
+    392.0, 329.6, 261.6, 220.0,   // bar1 beat4: Am down
+    174.6, 220.0, 261.6, 349.2,   // bar2 beat1: Fm up
+    392.0, 349.2, 261.6, 220.0,   // bar2 beat2: Fm down
+    196.0, 246.9, 293.7, 392.0,   // bar2 beat3: Gm up
+    329.6, 261.6, 220.0, 174.6,   // bar2 beat4: Fm down
+  ];
+  const LEN = ARP.length; // 32 steps
+
+  // Bass roots per bar (Am F Gm Am)
+  const BASS = [110.0, 87.3, 98.0, 110.0];
+
+  function init(){
+    ac = getAC();
+    masterGain = ac.createGain();
+    masterGain.gain.value = 0;
+    masterGain.connect(ac.destination);
+
+    // pre-generate noise buffer (for drums)
+    const dur = 0.12;
+    noiseBuf = ac.createBuffer(1, Math.ceil(ac.sampleRate * dur), ac.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+  }
+
+  function kick(t){
+    const o=ac.createOscillator(), g=ac.createGain();
+    o.connect(g); g.connect(masterGain);
+    o.frequency.setValueAtTime(120,t);
+    o.frequency.exponentialRampToValueAtTime(38,t+.32);
+    g.gain.setValueAtTime(.95,t);
+    g.gain.exponentialRampToValueAtTime(.001,t+.32);
+    o.start(t); o.stop(t+.32);
+  }
+
+  function snare(t){
+    const src=ac.createBufferSource(), f=ac.createBiquadFilter(), g=ac.createGain();
+    src.buffer=noiseBuf;
+    f.type='bandpass'; f.frequency.value=2200; f.Q.value=.6;
+    src.connect(f); f.connect(g); g.connect(masterGain);
+    g.gain.setValueAtTime(.45,t);
+    g.gain.exponentialRampToValueAtTime(.001,t+.09);
+    src.start(t);
+  }
+
+  function hihat(t, vol=.07){
+    const src=ac.createBufferSource(), f=ac.createBiquadFilter(), g=ac.createGain();
+    src.buffer=noiseBuf;
+    f.type='highpass'; f.frequency.value=9500;
+    src.connect(f); f.connect(g); g.connect(masterGain);
+    g.gain.setValueAtTime(vol,t);
+    g.gain.exponentialRampToValueAtTime(.001,t+.03);
+    src.start(t);
+  }
+
+  function bass(t, freq, dur){
+    const o=ac.createOscillator(), f=ac.createBiquadFilter(), g=ac.createGain();
+    o.type='sawtooth'; f.type='lowpass'; f.frequency.value=360; f.Q.value=1.4;
+    o.connect(f); f.connect(g); g.connect(masterGain);
+    o.frequency.value=freq;
+    g.gain.setValueAtTime(.55,t);
+    g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.start(t); o.stop(t+dur);
+  }
+
+  function arpNote(t, freq){
+    const o=ac.createOscillator(), f=ac.createBiquadFilter(), g=ac.createGain();
+    o.type='square'; f.type='lowpass'; f.frequency.value=1100; f.Q.value=2.5;
+    o.connect(f); f.connect(g); g.connect(masterGain);
+    o.frequency.value=freq;
+    g.gain.setValueAtTime(.18,t);
+    g.gain.exponentialRampToValueAtTime(.001,t+STEP*.78);
+    o.start(t); o.stop(t+STEP*.78);
+  }
+
+  function pad(t, freq, dur){
+    const o=ac.createOscillator(), f=ac.createBiquadFilter(), g=ac.createGain();
+    o.type='triangle'; f.type='lowpass'; f.frequency.value=600;
+    o.connect(f); f.connect(g); g.connect(masterGain);
+    o.frequency.value=freq;
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.08,t+.1);
+    g.gain.setValueAtTime(.08,t+dur-.1);
+    g.gain.linearRampToValueAtTime(0,t+dur);
+    o.start(t); o.stop(t+dur);
+  }
+
+  function playStep(t, s){
+    const bar = Math.floor(s/16);
+    const b   = s % 16;
+
+    // Kick: beats 1 & 3 (steps 0, 8)
+    if(b===0 || b===8) kick(t);
+    // Snare: beats 2 & 4 (steps 4, 12)
+    if(b===4 || b===12) snare(t);
+    // Hi-hat: every other 16th
+    if(b%2===0) hihat(t, b%4===0 ? .09 : .055);
+
+    // Bass: root on beats 1 & 3
+    if(b===0)  bass(t, BASS[bar%BASS.length],      STEP*4);
+    if(b===8)  bass(t, BASS[bar%BASS.length]*1.12, STEP*4);
+
+    // Pad chord on beat 1 of each bar
+    if(b===0) pad(t, BASS[bar%BASS.length]*2, STEP*16);
+
+    // Arp every step
+    arpNote(t, ARP[s%LEN]);
+  }
+
+  function scheduler(){
+    if(!playing) return;
+    const a = getAC();
+    while(nextTime < a.currentTime + .18){
+      playStep(nextTime, step);
+      nextTime += STEP;
+      step = (step+1) % LEN;
+    }
+    tid = setTimeout(scheduler, 50);
+  }
+
+  return {
+    start(){
+      if(playing || !musicOn) return;
+      if(!ac) init();
+      getAC().resume().catch(()=>{});
+      playing = true;
+      step = 0;
+      nextTime = getAC().currentTime + .08;
+      masterGain.gain.cancelScheduledValues(getAC().currentTime);
+      masterGain.gain.setTargetAtTime(.36, getAC().currentTime, .4);
+      scheduler();
+    },
+    stop(){
+      playing = false;
+      clearTimeout(tid);
+      if(masterGain) masterGain.gain.setTargetAtTime(0, getAC().currentTime, .3);
+    },
+    toggle(){
+      musicOn = !musicOn;
+      musicOn ? this.start() : this.stop();
+      document.getElementById('music-btn').textContent = musicOn ? '♪' : '♪̶';
+      document.getElementById('music-btn').style.opacity = musicOn ? '1' : '.4';
+      return musicOn;
+    },
+    get isOn(){ return musicOn; }
+  };
+})();
+
+function toggleMusic(){ BGM.toggle(); }
+
+/* ══════════════════════════════════════
+   GAME
+══════════════════════════════════════ */
+const TILES    = Array.from(document.querySelectorAll('.tile'));
+const statusEl = document.getElementById('status');
+const lvEl     = document.getElementById('lv-val');
+const bestEl   = document.getElementById('best-val');
+const dotsEl   = document.getElementById('dots');
+const gridWrap = document.getElementById('grid-wrap');
+const tTrack   = document.getElementById('timer-track');
+const tBar     = document.getElementById('timer-bar');
+
+let seq=[], cursor=0, level=0, phase='idle', timerId=null;
+let bestScore = parseInt(localStorage.getItem('mg_best')||'0');
+
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('hidden',s.id!==id)); }
+function setStatus(txt,col='#e8eaff'){ statusEl.textContent=txt; statusEl.style.color=col; }
+
+function renderDots(total,done,cls=''){
+  dotsEl.innerHTML='';
+  for(let i=0;i<total;i++){
+    const d=document.createElement('div'); d.className='dot';
+    if(done>0&&i<done) d.classList.add(cls||'done');
+    dotsEl.appendChild(d);
+  }
+}
+
+function litTile(id,ms){
+  return new Promise(ok=>{
+    TILES[id].classList.add('lit');
+    sfxTone(FREQS[id], ms/1000*.8);
+    setTimeout(()=>{ TILES[id].classList.remove('lit'); setTimeout(ok,70); },ms);
+  });
+}
+
+/* ── Show sequence ── */
+async function showSeq(){
+  phase='showing';
+  TILES.forEach(t=>t.style.pointerEvents='none');
+  setStatus('Memorize —','#e8eaff');
+  renderDots(seq.length,0);
+  await sleep(400);
+
+  const spd = Math.max(240, 640-level*28);
+  for(let i=0;i<seq.length;i++){
+    await litTile(seq[i],spd);
+    renderDots(seq.length,i+1);
+    await sleep(38);
+  }
+  await sleep(240);
+  beginInput();
+}
+
+/* ── Input phase ── */
+function beginInput(){
+  phase='input'; cursor=0;
+  TILES.forEach(t=>t.style.pointerEvents='auto');
+  setStatus('Your Turn','#F5D800');
+  renderDots(seq.length,0);
+  startTimer();
+}
+
+function startTimer(){
+  tTrack.classList.add('on');
+  const ms = Math.max(3800, 9000-level*170);
+  tBar.style.transition='none'; tBar.style.width='100%';
+  requestAnimationFrame(()=>{ tBar.style.transition=`width ${ms}ms linear`; tBar.style.width='0%'; });
+  timerId = setTimeout(()=>{ if(phase==='input') gameOver(); },ms);
+}
+
+function clearTimer(){
+  clearTimeout(timerId);
+  tTrack.classList.remove('on');
+  tBar.style.transition='none'; tBar.style.width='100%';
+}
+
+/* ── Tile events ── */
+let _lastId=-1, _lastT=0;
+TILES.forEach(tile=>{
+  const id=parseInt(tile.getAttribute('data-id'));
+  function onPress(e){ e.preventDefault(); e.stopPropagation(); if(phase!=='input') return; handlePress(id); }
+  tile.addEventListener('pointerdown', onPress, {passive:false});
+  tile.addEventListener('touchstart',  onPress, {passive:false});
+});
+
+async function handlePress(id){
+  const now=Date.now();
+  if(id===_lastId && now-_lastT<110) return; // dedupe
+  _lastId=id; _lastT=now;
+
+  TILES[id].classList.add('lit');
+  sfxTone(FREQS[id],.15);
+  setTimeout(()=>TILES[id].classList.remove('lit'),160);
+
+  if(id===seq[cursor]){
+    cursor++;
+    renderDots(seq.length,cursor,'done');
+    if(cursor>=seq.length){
+      clearTimer(); phase='clear';
+      TILES.forEach(t=>t.style.pointerEvents='none');
+      await sleep(140);
+      await levelClear();
+    }
+  } else {
+    clearTimer();
+    gameOver(id);
+  }
+}
+
+/* ── Level clear ─────────────────────────────
+   ★ KEY FIX: generate COMPLETELY NEW random sequence
+   instead of appending to the old one
+─────────────────────────────────────────────── */
+async function levelClear(){
+  sfxFanfare();
+  setStatus('Cleared !','#00E87A');
+  renderDots(seq.length,seq.length,'ok');
+  TILES.forEach(t=>t.classList.add('lit'));
+  await sleep(300); TILES.forEach(t=>t.classList.remove('lit'));
+
+  level++;
+  lvEl.textContent = level;
+
+  // 毎レベル、前のルートに関係なく完全新規ランダム生成
+  const newLen = level + 2; // level 1→3 tiles, level 2→4 tiles, ...
+  seq = Array.from({length: newLen}, () => rnd());
+
+  if(level>bestScore){
+    bestScore=level;
+    localStorage.setItem('mg_best', bestScore);
+    bestEl.textContent = bestScore;
+  }
+  await sleep(460);
+  showSeq();
+}
+
+/* ── Game over ── */
+async function gameOver(){
+  phase='gameover';
+  TILES.forEach(t=>t.style.pointerEvents='none');
+  sfxBuzzer();
+  setStatus('Miss !','#FF3040');
+  if(seq[cursor]!==undefined) TILES[seq[cursor]].classList.add('lit');
+  gridWrap.classList.add('shake');
+  renderDots(seq.length,cursor,'miss');
+  await sleep(480);
+  gridWrap.classList.remove('shake');
+  TILES.forEach(t=>t.classList.remove('lit'));
+  await sleep(260);
+  BGM.stop();
+  showResult();
+}
+
+/* ══════════════════════════════════════
+   RESULT
+══════════════════════════════════════ */
+const RANKS=[
+  {min:1,  e:'🥚',name:'まだまだこれから',  c:'#9090a0'},
+  {min:3,  e:'👍',name:'なかなか の腕前',   c:'var(--c0)'},
+  {min:5,  e:'✨',name:'優秀',              c:'var(--c2)'},
+  {min:7,  e:'🔥',name:'天才',              c:'var(--c1)'},
+  {min:9,  e:'💎',name:'記憶の達人',         c:'var(--c3)'},
+  {min:12, e:'👑',name:'人類を超えた',       c:'#FFB740'},
+];
+function getRank(sc){ let r=RANKS[0]; for(const x of RANKS) if(sc>=x.min) r=x; return r; }
+
+function showResult(){
+  const sc=level, rank=getRank(sc);
+  document.getElementById('res-emoji').textContent=rank.e;
+  document.getElementById('res-rank').textContent=rank.name;
+  document.getElementById('res-rank').style.color=rank.c;
+  document.getElementById('res-score').innerHTML=
+    `Level <strong style="color:${rank.c};font-size:1.6em;font-weight:200;letter-spacing:2px">${sc}</strong> 到達<br>`+
+    `<span style="font-size:11px;letter-spacing:2px">Best — ${bestScore}</span>`;
+  const msg=`🧠 記憶天才テストでLevel ${sc}「${rank.name}${rank.e}」でした！\nあなたは何レベルまで行ける？\n#記憶天才テスト #AIゲーム #頭脳テスト #挑戦`;
+  document.getElementById('share-text').textContent=msg;
+  show('result-screen');
+}
+
+function copyShare(){
+  const t=document.getElementById('share-text').textContent;
+  navigator.clipboard.writeText(t).then(showToast)
+    .catch(()=>{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast(); });
+}
+function showToast(){ const el=document.getElementById('toast'); el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800); }
+
+/* ══════════════════════════════════════
+   START
+══════════════════════════════════════ */
+function startGame(){
+  try{ getAC().resume(); }catch(e){}
+  clearTimer();
+  level=1;
+  seq=[rnd(),rnd(),rnd()]; // initial 3-tile sequence
+  cursor=0; phase='idle';
+  lvEl.textContent=level;
+  bestEl.textContent=bestScore||'—';
+  TILES.forEach(t=>{ t.classList.remove('lit'); t.style.pointerEvents='none'; });
+  dotsEl.innerHTML='';
+  show('game-screen');
+  BGM.start();
+
+  const cnt=['3','2','1'];
+  cnt.forEach((c,i)=>setTimeout(()=>setStatus(c,'var(--dim)'),i*620));
+  setTimeout(()=>showSeq(), 620*3+180);
+}
+
+const rnd   = ()=>Math.floor(Math.random()*4);
+const sleep = ms=>new Promise(r=>setTimeout(r,ms));
+
+// init
+(()=>{
+  const b=document.getElementById('best-badge');
+  if(bestScore>0) b.textContent=`Best — Level ${bestScore}`;
+  show('title-screen');
+})();
+</script>
+</body>
+</html>
